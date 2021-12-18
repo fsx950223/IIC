@@ -1,5 +1,5 @@
-import tensorflow as tf
-
+import tensorflow.compat.v1 as tf
+import tf_slim as slim
 # set trainable variable initialization routines
 KERNEL_INIT = tf.keras.initializers.he_uniform()
 WEIGHT_INIT = tf.random_normal_initializer(mean=0.0, stddev=0.01)
@@ -31,7 +31,7 @@ def convolution_layer(x, kernel_size, num_out_channels, activation, batch_norm, 
 
     # run batch norm if specified
     if batch_norm:
-        x = tf.contrib.layers.batch_norm(inputs=x, is_training=is_training, scope=name)
+        x = slim.layers.batch_norm(inputs=x, is_training=is_training, scope=name)
 
     # run activation
     x = activation(x)
@@ -72,7 +72,7 @@ def fully_connected_layer(x, num_outputs, activation, is_training, name):
                         name=name)
 
     # run batch norm
-    x = tf.contrib.layers.batch_norm(inputs=x, activation_fn=activation, is_training=is_training)
+    x = slim.layers.batch_norm(inputs=x, activation_fn=activation, is_training=is_training)
 
     return x
 
@@ -97,7 +97,7 @@ class IICGraph(object):
         :param is_training: whether we are training or testing (used by batch normalization)
         :return: output of VGG
         """
-        with tf.compat.v1.variable_scope('GraphB', reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.variable_scope('GraphB', reuse=tf.AUTO_REUSE):
 
             # layer 1
             num_out_channels = self.fan_out_init
@@ -123,7 +123,7 @@ class IICGraph(object):
                                   batch_norm=self.batch_norm, is_training=is_training, name='conv4')
 
             # flatten
-            x = tf.contrib.layers.flatten(x)
+            x = slim.layers.flatten(x)
 
             return x
 
@@ -160,7 +160,7 @@ class VGG(object):
         :param is_training: whether we are training or testing (used by batch normalization)
         :return: output of VGG
         """
-        with tf.compat.v1.variable_scope('VGG_A', reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.variable_scope('VGG_A', reuse=tf.compat.v1.AUTO_REUSE):
 
             # layer 1
             num_out_channels = self.fan_out_init
@@ -198,7 +198,7 @@ class VGG(object):
             x = max_pooling_layer(x=x, pool_size=3, strides=2, name='pool5')
 
             # flatten
-            x = tf.contrib.layers.flatten(x)
+            x = slim.layers.flatten(x)
 
             # fully connected layers
             x = fully_connected_layer(x=x,
@@ -225,7 +225,7 @@ class VGG(object):
         :param is_training: whether we are training or testing (used by batch normalization)
         :return: output of VGG
         """
-        with tf.compat.v1.variable_scope('VGG_C', reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.variable_scope('VGG_C', reuse=tf.AUTO_REUSE):
             # layer 1
             num_out_channels = self.fan_out_init
             x = convolution_layer(x=x, kernel_size=3, num_out_channels=num_out_channels, activation=self.activation,
@@ -272,7 +272,7 @@ class VGG(object):
             x = max_pooling_layer(x=x, pool_size=3, strides=2, name='pool5')
 
             # flatten
-            x = tf.contrib.layers.flatten(x)
+            x = slim.layers.flatten(x)
 
             # fully connected layers
             x = fully_connected_layer(x=x,
@@ -346,7 +346,7 @@ class VGG(object):
             x = max_pooling_layer(x=x, pool_size=3, strides=2, name='pool5')
 
             # flatten
-            x = tf.contrib.layers.flatten(x)
+            x = slim.layers.flatten(x)
 
             # fully connected layers
             x = fully_connected_layer(x=x,

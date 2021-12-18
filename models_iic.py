@@ -1,11 +1,12 @@
 import copy
 import time
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
 from matplotlib import pyplot as plt
 from matplotlib import patches as patches
 from matplotlib.ticker import FormatStrFormatter
-
+import tf_slim as slim
 # import data loader
 from data import load
 
@@ -42,10 +43,10 @@ class ClusterIIC(object):
         self.y_hats = None
 
         # initialize optimizer
-        self.is_training = tf.compat.v1.placeholder(tf.bool)
+        self.is_training = tf.placeholder(tf.bool)
         self.learning_rate = learning_rate
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.opt = tf.compat.v1.train.AdamOptimizer(self.learning_rate)
+        self.opt = tf.train.AdamOptimizer(self.learning_rate)
         self.train_ops = []
 
         # initialize performance dictionary
@@ -88,7 +89,7 @@ class ClusterIIC(object):
     def __head_out(z, k, name):
 
         # construct a new head that operates on the model's output for x
-        with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
             phi = tf.layers.dense(
                 inputs=z,
                 units=k,
@@ -107,9 +108,9 @@ class ClusterIIC(object):
 
             # run the model
             pi_x = self.__head_out(z_x, k, name=head + str(i + 1))
-            num_vars = len(tf.compat.v1.global_variables())
+            num_vars = len(tf.global_variables())
             pi_gx = self.__head_out(z_gx, k, name=head + str(i + 1))
-            assert num_vars == len(tf.compat.v1.global_variables())
+            assert num_vars == len(tf.global_variables())
 
             # accumulate the clustering loss
             loss += self.__iic_loss(pi_x, pi_gx)
@@ -124,9 +125,9 @@ class ClusterIIC(object):
 
         # run the graph
         z_x = graph.evaluate(x, is_training=self.is_training)
-        num_vars = len(tf.compat.v1.global_variables())
+        num_vars = len(tf.global_variables())
         z_gx = graph.evaluate(gx, is_training=self.is_training)
-        assert num_vars == len(tf.compat.v1.global_variables())
+        assert num_vars == len(tf.global_variables())
 
         # construct losses
         self.loss_A = self.__head_loss(z_x, z_gx, self.k_A, self.num_A_sub_heads, 'A')
@@ -134,12 +135,12 @@ class ClusterIIC(object):
         self.losses = [self.loss_A, self.loss_B]
 
         # set alternating training operations
-        self.train_ops.append(tf.contrib.layers.optimize_loss(loss=self.loss_A,
+        self.train_ops.append(slim.optimize_loss(loss=self.loss_A,
                                                               global_step=self.global_step,
                                                               learning_rate=self.learning_rate,
                                                               optimizer=self.opt,
                                                               summaries=['loss', 'gradients']))
-        self.train_ops.append(tf.contrib.layers.optimize_loss(loss=self.loss_B,
+        self.train_ops.append(slim.optimize_loss(loss=self.loss_B,
                                                               global_step=self.global_step,
                                                               learning_rate=self.learning_rate,
                                                               optimizer=self.opt,
@@ -276,7 +277,7 @@ class ClusterIIC(object):
         :return: None
         """
         # construct iterator
-        iterator = tf.compat.v1.data.make_initializable_iterator(train_set)
+        iterator = tf.data.make_initializable_iterator(train_set)
         x, gx, y = iterator.get_next().values()
 
         # construct initialization operations
@@ -290,9 +291,9 @@ class ClusterIIC(object):
         self.__performance_dictionary_init(num_epochs)
 
         # start a monitored session
-        cfg = tf.compat.v1.ConfigProto()
+        cfg = tf.ConfigProto()
         cfg.gpu_options.allow_growth = True
-        with tf.compat.v1.Session(config=cfg) as sess:
+        with tf.Session(config=cfg) as sess:
 
             # initialize model variables
             sess.run(tf.global_variables_initializer())

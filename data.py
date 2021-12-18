@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
-
+import tensorflow_addons as tfa
 
 def mnist_x(x_orig, mdl_input_dims, is_training):
 
@@ -48,7 +48,7 @@ def mnist_gx(x_orig, mdl_input_dims, is_training, sample_repeats):
 
     # random rotation
     rad = 2 * np.pi * 25 / 360
-    x_rot = tf.contrib.image.rotate(x_orig, tf.random.uniform(shape=tf.shape(x_orig)[:1], minval=-rad, maxval=rad))
+    x_rot = tfa.image.rotate(x_orig, tf.random.uniform(shape=tf.shape(x_orig)[:1], minval=-rad, maxval=rad))
     gx = tf.stack([x_orig, x_rot])
     gx = tf.transpose(gx, [1, 0, 2, 3, 4])
     i = tf.squeeze(tf.random.categorical([[1., 1.]], tf.shape(gx)[0]))
@@ -134,15 +134,15 @@ def load(data_set_name, **kwargs):
         info: data set info object
     """
     # get data and its info
-    ds, info = tfds.load(name=data_set_name, split=tfds.Split.ALL, with_info=True)
+    ds, info = tfds.load(name=data_set_name, with_info=True)
 
     # configure the data sets
     if 'train' in info.splits:
-        train_ds = configure_data_set(ds=ds, info=info, is_training=True, **kwargs)
+        train_ds = configure_data_set(ds=ds['train'], info=info, is_training=True, **kwargs)
     else:
         train_ds = None
     if 'test' in info.splits:
-        test_ds = configure_data_set(ds=ds, info=info, is_training=False, **kwargs)
+        test_ds = configure_data_set(ds=ds['test'], info=info, is_training=False, **kwargs)
     else:
         test_ds = None
 
